@@ -51,7 +51,7 @@ model Items {
 model Inventories {
   inventoryNo Int @id @unique
   items Json 
-  character Characters @relation(fields: [inventoryNo], references: [characterNo])
+  character Characters @relation(fields: [inventoryNo], references: [characterNo], onDelete:Cascade)
 
   @@map("Inventories")
 }
@@ -59,7 +59,7 @@ model Inventories {
 model Equips {
   equipNo Int @id @unique
   items Json 
-  character Characters @relation(fields: [equipNo], references: [characterNo])
+  character Characters @relation(fields: [equipNo], references: [characterNo], onDelete:Cascade)
 
   @@map("Equips")
 }

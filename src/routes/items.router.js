@@ -11,7 +11,7 @@ router.post("/item", async (req, res, next) => {
     where: { itemNo },
   });
   if (isItem)
-    return res.status(400).json({ message: "이미 있는 아이템 넘버입니다." });
+    return res.status(409).json({ message: "이미 있는 아이템 넘버입니다." });
 
   const item = await prisma.items.create({
     data: {
@@ -22,7 +22,7 @@ router.post("/item", async (req, res, next) => {
     },
   });
 
-  return res.status(200).json({ data: item });
+  return res.status(201).json({ data: item });
 });
 
 // item 수정
@@ -35,7 +35,7 @@ router.patch("/updateItem/:itemNo", async (req, res, next) => {
     where: { itemNo: +itemNo },
   });
 
-  if (!Item) return res.status(400).json({ message: "없는 아이템입니다." });
+  if (!Item) return res.status(404).json({ message: "없는 아이템입니다." });
 
   const updateItem = await prisma.items.update({
     where: { itemNo: +itemNo },
@@ -52,7 +52,7 @@ router.patch("/updateItem/:itemNo", async (req, res, next) => {
 router.get("/item", async (req, res, next) => {
   const items = await prisma.items.findMany();
   if (!items)
-    return res.status(400).json({ message: "등록된 아이템이 없습니다." });
+    return res.status(404).json({ message: "등록된 아이템이 없습니다." });
 
   return res.status(200).json({ data: items });
 });
@@ -65,7 +65,7 @@ router.get("/item/:itemNo", async (req, res, next) => {
     where: { itemNo: +itemNo },
   });
   if (!items)
-    return res.status(400).json({ message: "등록된 아이템이 없습니다." });
+    return res.status(404).json({ message: "등록된 아이템이 없습니다." });
 
   return res.status(200).json({ data: items });
 });
