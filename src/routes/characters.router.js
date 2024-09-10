@@ -1,9 +1,6 @@
 import express from "express";
 import { prisma } from "../utils/prisma/index.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import authMiddleware from "../middlewares/auth.middleware.js";
-import { SECRET_CODE } from "../config.js";
 
 const router = express.Router();
 
@@ -22,9 +19,20 @@ router.post("/character", authMiddleware, async (req, res, next) => {
   const character = await prisma.characters.create({
     data: {
       characterName,
-      userNo: userNo,
+      userNo,
+      inventory: {
+        create: {
+          items: JSON.stringify([]),
+        },
+      },
+      equip: {
+        create: {
+          items: JSON.stringify([]),
+        },
+      },
     },
   });
+
   const characterNo = character.characterNo;
   return res.status(200).json({
     data: { characterNo },
