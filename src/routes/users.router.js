@@ -39,8 +39,9 @@ router.post("/sign-up", async (req, res, next) => {
 
   return res.status(200).json({
     data: {
-      userId,
-      userName,
+      userNo: user.userNo,
+      userId: user.userId,
+      userName: user.userName,
     },
   });
 });
@@ -63,27 +64,6 @@ router.post("/sign-in", async (req, res, next) => {
   return res
     .status(200)
     .json({ message: "로그인 성공, 헤더에 토큰값이 반환되었습니다." });
-});
-
-router.post("/character", authMiddleware, async (req, res, next) => {
-  const { characterName } = req.body;
-  const { userNo } = req.user;
-  console.log(userNo);
-  const isCharacter = await prisma.characters.findFirst({
-    where: { characterName },
-  });
-  if (isCharacter)
-    return res.status(400).json({ message: "이미 있는 캐릭터명입니다. " });
-
-  const character = await prisma.characters.create({
-    data: {
-      characterName,
-      userNo: userNo,
-    },
-  });
-  return res.status(200).json({
-    data: { character },
-  });
 });
 
 export default router;
