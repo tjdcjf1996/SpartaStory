@@ -58,16 +58,17 @@ router.post("/sign-in", async (req, res, next) => {
     return res.status(400).json({
       errorMessage: "틀린 비밀번호 입니다.",
     });
-  const token = jwt.sign({ userId: isUser.userId }, SECRET_CODE);
+  const token = jwt.sign({ userId: userId }, SECRET_CODE);
   res.setHeader("Authorization", `Bearer ${token}`);
   return res
     .status(200)
     .json({ message: "로그인 성공, 헤더에 토큰값이 반환되었습니다." });
 });
 
-router.post("/c", authMiddleware, async (req, res, next) => {
+router.post("/character", authMiddleware, async (req, res, next) => {
   const { characterName } = req.body;
-  const { userId } = req.user;
+  const { userNo } = req.user;
+  console.log(userNo);
   const isCharacter = await prisma.characters.findFirst({
     where: { characterName },
   });
@@ -77,7 +78,7 @@ router.post("/c", authMiddleware, async (req, res, next) => {
   const character = await prisma.characters.create({
     data: {
       characterName,
-      userId: +userId,
+      userNo: userNo,
     },
   });
   return res.status(200).json({

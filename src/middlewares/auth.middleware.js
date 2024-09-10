@@ -4,7 +4,7 @@ import { SECRET_CODE } from "../config.js";
 
 export default async function (req, res, next) {
   try {
-    const { authorization } = req.cookies;
+    const { authorization } = req.headers;
 
     if (!authorization) throw new Error("요청한 사용자의 토큰이 없습니다.");
 
@@ -16,7 +16,7 @@ export default async function (req, res, next) {
     const userId = decodedToken.userId;
 
     const user = await prisma.users.findFirst({
-      where: { userId: +userId },
+      where: { userId: userId },
     });
     if (!user) throw new Error("토큰 사용자가 존재하지 않습니다.");
     req.user = user;
