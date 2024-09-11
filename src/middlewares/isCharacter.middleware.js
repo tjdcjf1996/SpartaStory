@@ -16,7 +16,9 @@ export default async function (req, res, next) {
         .json({ errorMessage: "캐릭터가 정보가 존재하지 않습니다." });
 
     if (character.userNo !== userNo)
-      return res.status(401).json({ errorMessage: "캐릭터 권한이 없습니다." });
+      return res
+        .status(401)
+        .json({ errorMessage: "캐릭터 접근 권한이 없습니다." });
 
     req.character = character;
     next();
