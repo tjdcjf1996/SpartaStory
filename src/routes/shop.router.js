@@ -115,7 +115,7 @@ router.post(
         price += Math.ceil(item.itemPrice * count * 0.6);
       }
 
-      // 인벤토리 및 캐릭터 업데이트
+      // 인벤토리 업데이트
 
       for (const { itemNo, count } of sellingCart) {
         if (inventoryItems[itemNo] - count === 0) {
