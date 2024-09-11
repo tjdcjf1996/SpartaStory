@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../utils/prisma/index.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
+import isCharacterMiddleware from "../middlewares/isCharacter.middleware.js";
 
 const router = express.Router();
 
@@ -10,24 +11,14 @@ router.post(
   async (req, res, next) => {
     const {
       params: { characterNo },
-      user: { userNo },
       body: shoppingCart,
+      character,
     } = req;
 
     try {
-      const [character, inventory] = await Promise.all([
-        prisma.characters.findFirst({ where: { characterNo: +characterNo } }),
-        prisma.inventories.findFirst({ where: { inventoryNo: +characterNo } }),
-      ]);
-
-      if (!character)
-        return res
-          .status(404)
-          .json({ errorMessage: "존재하지 않는 캐릭터입니다." });
-      if (character.userNo !== userNo)
-        return res
-          .status(401)
-          .json({ errorMessage: "본인 캐릭터만 구매 가능합니다." });
+      const inventory = await prisma.inventories.findFirst({
+        where: { inventoryNo: +characterNo },
+      });
 
       const inventoryItems = JSON.parse(inventory.items);
       let price = 0;
@@ -78,27 +69,18 @@ router.post(
 router.post(
   "/shop/sell/:characterNo",
   authMiddleware,
+  isCharacterMiddleware,
   async (req, res, next) => {
     const {
       params: { characterNo },
-      user: { userNo },
       body: sellingCart,
+      character,
     } = req;
 
     try {
-      const [character, inventory] = await Promise.all([
-        prisma.characters.findFirst({ where: { characterNo: +characterNo } }),
-        prisma.inventories.findFirst({ where: { inventoryNo: +characterNo } }),
-      ]);
-
-      if (!character)
-        return res
-          .status(404)
-          .json({ errorMessage: "존재하지 않는 캐릭터입니다." });
-      if (character.userNo !== userNo)
-        return res
-          .status(401)
-          .json({ errorMessage: "본인 캐릭터만 판매 가능합니다." });
+      const inventory = prisma.inventories.findFirst({
+        where: { inventoryNo: +characterNo },
+      });
 
       const inventoryItems = JSON.parse(inventory.items);
       let price = 0;
