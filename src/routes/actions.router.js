@@ -140,5 +140,119 @@ router.post(
   }
 );
 
-router.post("/unEquipItem", authMiddleware, async (req, res, next) => {});
+router.post(
+  "/unEquipItem/:characterNo",
+  authMiddleware,
+  async (req, res, next) => {
+    const {
+      params: { characterNo },
+      body: { unEquipItem },
+      user: { userNo },
+    } = req;
+
+    try {
+      const [character, inventory, equip, item] = await Promise.all([
+        prisma.characters.findFirst({ where: { characterNo: +characterNo } }),
+        prisma.inventories.findFirst({ where: { inventoryNo: +characterNo } }),
+        prisma.equips.findFirst({ where: { equipNo: +characterNo } }),
+        prisma.items.findFirst({ where: { itemNo: +unEquipItem } }),
+      ]);
+
+      if (!character)
+        return res.status(404).json({
+          errorMessage: " 장비를 착용할 캐릭터가 존재하지 않습니다. ",
+        });
+      if (character.userNo !== userNo)
+        return res
+          .status(401)
+          .json({ errorMessage: " 장비 탈착 권한이 없습니다. " });
+
+      const inventoryItems = JSON.parse(inventory.items);
+      const equipItems = JSON.parse(equip.items);
+
+      if (!equipItems[unEquipItem])
+        return res
+          .status(404)
+          .json({ errorMessage: "장착하신 아이템이 아닙니다." });
+
+      // 장착한 아이템 장비창에서 제거
+      delete equipItems[unEquipItem];
+
+      // 탈착한 아이템 인벤토리 추가
+      if (!inventoryItems[unEquipItem]) inventoryItems[unEquipItem] = 1;
+      else inventoryItems[unEquipItem] += 1;
+
+      // 캐릭터 스탯 조정
+      for (const [key, value] of Object.entries(item.itemStat)) {
+        character[key] -= value;
+      }
+
+      const [updatedCharacter, updatedInventory, updatedEquip] =
+        await Promise.all([
+          prisma.characters.update({
+            where: { characterNo: +characterNo },
+            data: { health: character.health, power: character.power },
+          }),
+          prisma.inventories.update({
+            where: { inventoryNo: +characterNo },
+            data: { items: JSON.stringify(inventoryItems) },
+          }),
+          prisma.equips.update({
+            where: { equipNo: +characterNo },
+            data: { items: JSON.stringify(equipItems) },
+          }),
+        ]);
+
+      return res.status(200).json({
+        data: {
+          character_health: updatedCharacter.health,
+          character_power: updatedCharacter.power,
+          updatedInventory: JSON.parse(updatedInventory.items),
+          updatedEquip: JSON.parse(updatedEquip.items),
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ errorMessage: "서버 오류" });
+    }
+  }
+);
+
+router.get(
+  "/showMeTheMoney/:characterNo",
+  authMiddleware,
+  async (req, res, next) => {
+    const {
+      params: { characterNo },
+      user: { userNo },
+    } = req;
+
+    try {
+      const character = await prisma.characters.findFirst({
+        where: { characterNo: +characterNo },
+      });
+      if (!character)
+        return res
+          .status(404)
+          .json({ errorMessage: "캐릭터가 존재하지 않습니다." });
+
+      if (character.userNo !== userNo)
+        return res
+          .status(401)
+          .json({ errorMessage: "남 캐릭터 돈벌어줘서 뭐합니까" });
+
+      character.money += 100;
+      const changedCharacter = await prisma.characters.update({
+        where: { characterNo: +characterNo },
+        data: { money: character.money },
+      });
+
+      return res.status(200).json({
+        message: `100원이 추가되어 ${changedCharacter.money} 가 되었습니다.`,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+);
 export default router;
