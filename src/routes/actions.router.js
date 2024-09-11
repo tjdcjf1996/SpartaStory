@@ -128,9 +128,10 @@ router.post(
 
       return res.status(200).json({
         data: {
-          updatedCharacter,
-          updatedInventory,
-          updatedEquip,
+          character_health: updatedCharacter.health,
+          character_power: updatedCharacter.power,
+          updatedInventory: JSON.parse(updatedInventory.items),
+          updatedEquip: JSON.parse(updatedEquip.items),
         },
       });
     } catch (err) {
@@ -248,7 +249,7 @@ router.get(
       });
 
       return res.status(200).json({
-        message: `100원이 추가되어 ${changedCharacter.money} 가 되었습니다.`,
+        message: `100원이 추가되어 잔액이 ${changedCharacter.money} 원이 되었습니다.`,
       });
     } catch (err) {
       console.error(err);

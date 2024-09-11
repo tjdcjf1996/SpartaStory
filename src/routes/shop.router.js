@@ -109,7 +109,7 @@ router.post(
         if (!item)
           return res.status(404).json({ errorMessage: "아이템이 없습니다." });
         if (!inventoryItems[itemNo] || inventoryItems[itemNo] < count)
-          return res.status(404).json({
+          return res.status(400).json({
             errorMessage: "판매할 아이템보다 보유한 아이템이 적습니다.",
           });
         price += Math.ceil(item.itemPrice * count * 0.6);
