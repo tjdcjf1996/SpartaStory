@@ -143,7 +143,6 @@ router.post(
         },
       });
     } catch (err) {
-      console.log(err);
       res.status(500).json({ errorMessage: "서버 오류" });
     }
   }
