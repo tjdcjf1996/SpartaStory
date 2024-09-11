@@ -16,7 +16,7 @@ router.get(
     } = req;
 
     try {
-      const inventory = prisma.inventories.findFirst({
+      const inventory = await prisma.inventories.findFirst({
         where: { inventoryNo: +characterNo },
       });
       return res.status(200).json({
