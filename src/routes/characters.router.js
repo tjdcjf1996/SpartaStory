@@ -22,12 +22,12 @@ router.post("/character", authMiddleware, async (req, res, next) => {
       userNo,
       inventory: {
         create: {
-          items: JSON.stringify([]),
+          items: JSON.stringify({}),
         },
       },
       equip: {
         create: {
-          items: JSON.stringify([]),
+          items: JSON.stringify({}),
         },
       },
     },
@@ -76,7 +76,7 @@ router.get(
       where: { characterNo: +characterNo },
     });
     if (!character)
-      return res.status(404).json({ message: "삭제하려는 계정이 없습니다. " });
+      return res.status(404).json({ message: "조회하려는 계정이 없습니다. " });
 
     if (character.userNo === userNo) {
       return res.status(200).json({
