@@ -2,6 +2,7 @@ import express from "express";
 import { prisma } from "../utils/prisma/index.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import isCharacterMiddleware from "../middlewares/isCharacter.middleware.js";
+import CustomErr from "../utils/CustomErr.js";
 
 const router = express.Router();
 
@@ -12,28 +13,17 @@ router.get(
   async (req, res, next) => {
     const {
       params: { characterNo },
-      user: { userNo },
-      character,
     } = req;
 
     try {
       const inventory = prisma.inventories.findFirst({
         where: { inventoryNo: +characterNo },
       });
-      if (!inventory || !character)
-        return res
-          .status(404)
-          .json({ errorMessage: "조회하려는 캐릭터가 없습니다." });
-      if (userNo !== character.userNo)
-        return res
-          .status(401)
-          .json({ errorMessage: "본인의 캐릭터만 조회 가능합니다." });
-
       return res.status(200).json({
         data: JSON.parse(inventory.items),
       });
     } catch (err) {
-      res.status(500).json({ errorMessage: "서버오류" });
+      next(err);
     }
   }
 );
@@ -45,10 +35,8 @@ router.get("/equip/:characterNo", async (req, res, next) => {
     const equip = await prisma.equips.findFirst({
       where: { equipNo: +characterNo },
     });
-    if (!equip)
-      return res
-        .status(404)
-        .json({ errorMessage: "조회하려는 장비창이 없습니다." });
+    if (!equip) throw new CustomErr("조회하려는 장비창이 없습니다.", 404);
+
     if (Object.keys(equip.items).length === 0)
       return res.status(200).json({ data: [] });
 
@@ -56,7 +44,7 @@ router.get("/equip/:characterNo", async (req, res, next) => {
       data: JSON.parse(equip.items),
     });
   } catch (err) {
-    res.status(500).json({ errorMessage: "서버오류" });
+    next(err);
   }
 });
 
@@ -82,15 +70,9 @@ router.post(
       const equipItems = JSON.parse(equip.items);
 
       if (equipItems[doEquipItem])
-        return res
-          .status(409)
-          .json({ errorMessage: "이미 장착하신 아이템입니다." });
-
+        throw new CustomErr("이미 장착하신 아이템입니다.", 409);
       if (!inventoryItems[doEquipItem])
-        return res
-          .status(404)
-          .json({ errorMessage: "보유하지 않은 아이템입니다." });
-
+        throw new CustomErr("보유하지 않은 아이템입니다.", 404);
       // 장착할 아이템 인벤토리 제거
       if (inventoryItems[doEquipItem] === 1) delete inventoryItems[doEquipItem];
       else inventoryItems[doEquipItem] -= 1;
@@ -128,8 +110,7 @@ router.post(
         },
       });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ errorMessage: "서버 오류" });
+      next(err);
     }
   }
 );
@@ -156,9 +137,7 @@ router.post(
       const equipItems = JSON.parse(equip.items);
 
       if (!equipItems[unEquipItem])
-        return res
-          .status(404)
-          .json({ errorMessage: "장착하신 아이템이 아닙니다." });
+        throw new CustomErr("장착하지 않은 아이템입니다.", 404);
 
       // 장착한 아이템 장비창에서 제거
       delete equipItems[unEquipItem];
@@ -197,8 +176,7 @@ router.post(
         },
       });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ errorMessage: "서버 오류" });
+      next(err);
     }
   }
 );
@@ -224,7 +202,7 @@ router.get(
         message: `100원이 추가되어 잔액이 ${changedCharacter.money} 원이 되었습니다.`,
       });
     } catch (err) {
-      console.error(err);
+      next(err);
     }
   }
 );

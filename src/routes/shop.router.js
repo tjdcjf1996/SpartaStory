@@ -2,12 +2,14 @@ import express from "express";
 import { prisma } from "../utils/prisma/index.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import isCharacterMiddleware from "../middlewares/isCharacter.middleware.js";
+import CustomErr from "../utils/CustomErr.js";
 
 const router = express.Router();
 
 router.post(
   "/shop/buy/:characterNo",
   authMiddleware,
+  isCharacterMiddleware,
   async (req, res, next) => {
     const {
       params: { characterNo },
@@ -26,16 +28,13 @@ router.post(
       // 쇼핑카트 가격 계산
       for (const { itemNo, count } of shoppingCart) {
         const item = await prisma.items.findFirst({ where: { itemNo } });
-        if (!item)
-          return res.status(404).json({ errorMessage: "아이템이 없습니다." });
+        if (!item) throw new CustomErr("선택하신 아이템이 없습니다.", 404);
         price += item.itemPrice * count;
       }
 
       // 결제 처리
       if (character.money < price)
-        return res
-          .status(400)
-          .json({ errorMessage: `금액 부족. ${character.money} 원 보유중` });
+        throw new CustomErr(`금액 부족. ${character.money} 원 보유중`, 400);
 
       // 인벤토리 및 캐릭터 업데이트
 
@@ -61,7 +60,7 @@ router.post(
         },
       });
     } catch (err) {
-      res.status(500).json({ errorMessage: "서버 오류" });
+      next(err);
     }
   }
 );
@@ -78,7 +77,7 @@ router.post(
     } = req;
 
     try {
-      const inventory = prisma.inventories.findFirst({
+      const inventory = await prisma.inventories.findFirst({
         where: { inventoryNo: +characterNo },
       });
 
@@ -88,12 +87,12 @@ router.post(
       // 판매카트 가격 계산
       for (const { itemNo, count } of sellingCart) {
         const item = await prisma.items.findFirst({ where: { itemNo } });
-        if (!item)
-          return res.status(404).json({ errorMessage: "아이템이 없습니다." });
+        if (!item) throw new CustomErr("선택하신 아이템이 없습니다.", 404);
         if (!inventoryItems[itemNo] || inventoryItems[itemNo] < count)
-          return res.status(400).json({
-            errorMessage: "판매할 아이템보다 보유한 아이템이 적습니다.",
-          });
+          throw new CustomErr(
+            "판매할 아이템보다 보유한 아이템이 적습니다.",
+            400
+          );
         price += Math.ceil(item.itemPrice * count * 0.6);
       }
 
@@ -125,7 +124,7 @@ router.post(
         },
       });
     } catch (err) {
-      res.status(500).json({ errorMessage: "서버 오류" });
+      next(err);
     }
   }
 );

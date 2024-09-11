@@ -1,5 +1,6 @@
 import express from "express";
 import { prisma } from "../utils/prisma/index.js";
+import CustomErr from "../utils/CustomErr.js";
 
 const router = express.Router();
 
@@ -11,8 +12,7 @@ router.post("/item", async (req, res, next) => {
     const isItem = await prisma.items.findFirst({
       where: { itemNo },
     });
-    if (isItem)
-      return res.status(409).json({ message: "이미 있는 아이템 넘버입니다." });
+    if (isItem) throw new CustomErr("이미 있는 아이템 넘버입니다.", 409);
 
     const item = await prisma.items.create({
       data: {
@@ -25,7 +25,7 @@ router.post("/item", async (req, res, next) => {
 
     return res.status(201).json({ data: item });
   } catch (err) {
-    res.status(500).json({ errorMessage: "서버 오류" });
+    next(err);
   }
 });
 
@@ -42,7 +42,7 @@ router.patch("/updateItem/:itemNo", async (req, res, next) => {
       where: { itemNo: +itemNo },
     });
 
-    if (!Item) return res.status(404).json({ message: "없는 아이템입니다." });
+    if (!Item) throw new CustomErr("없는 아이템입니다.", 404);
 
     const updateItem = await prisma.items.update({
       where: { itemNo: +itemNo },
@@ -54,7 +54,7 @@ router.patch("/updateItem/:itemNo", async (req, res, next) => {
 
     return res.status(200).json({ data: updateItem });
   } catch (err) {
-    res.status(500).json({ errorMessage: "서버 오류" });
+    next(err);
   }
 });
 
@@ -62,11 +62,10 @@ router.patch("/updateItem/:itemNo", async (req, res, next) => {
 router.get("/item", async (req, res, next) => {
   const items = await prisma.items.findMany();
   try {
-    if (!items)
-      return res.status(404).json({ message: "등록된 아이템이 없습니다." });
+    if (!items) throw new CustomErr("등록된 아이템이 없습니다.", 404);
     return res.status(200).json({ data: items });
   } catch (err) {
-    res.status(500).json({ errorMessage: "서버 오류" });
+    next(err);
   }
 });
 
@@ -78,12 +77,10 @@ router.get("/item/:itemNo", async (req, res, next) => {
     const items = await prisma.items.findFirst({
       where: { itemNo: +itemNo },
     });
-    if (!items)
-      return res.status(404).json({ message: "등록된 아이템이 없습니다." });
-
+    if (!items) throw new CustomErr("등록된 아이템이 없습니다.", 404);
     return res.status(200).json({ data: items });
   } catch (err) {
-    res.status(500).json({ errorMessage: "서버 오류" });
+    next(err);
   }
 });
 

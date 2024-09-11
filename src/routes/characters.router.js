@@ -1,7 +1,8 @@
 import express from "express";
 import { prisma } from "../utils/prisma/index.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
-
+import CustomErr from "../utils/CustomErr.js";
+import isCharacterMiddleware from "../middlewares/isCharacter.middleware.js";
 const router = express.Router();
 
 // 캐릭터 추가
@@ -16,8 +17,7 @@ router.post("/character", authMiddleware, async (req, res, next) => {
     const isCharacter = await prisma.characters.findFirst({
       where: { characterName },
     });
-    if (isCharacter)
-      return res.status(409).json({ message: "이미 있는 캐릭터명입니다. " });
+    if (isCharacter) throw new CustomErr("이미 있는 캐릭터명입니다.", 409);
 
     const character = await prisma.characters.create({
       data: {
@@ -34,7 +34,7 @@ router.post("/character", authMiddleware, async (req, res, next) => {
       data: { characterNo: character.characterNo },
     });
   } catch (err) {
-    res.status(500).json({ errorMessage: "서버오류" });
+    next(err);
   }
 });
 
@@ -43,31 +43,18 @@ router.post("/character", authMiddleware, async (req, res, next) => {
 router.delete(
   "/character/delete/:characterNo",
   authMiddleware,
+  isCharacterMiddleware,
   async (req, res, next) => {
-    const {
-      params: { characterNo },
-      user: { userNo },
-    } = req;
+    const { character } = req;
 
     try {
-      const character = await prisma.characters.findFirst({
-        where: { characterNo: +characterNo },
-      });
-      if (!character)
-        return res
-          .status(404)
-          .json({ message: "삭제하려는 계정이 없습니다. " });
-
-      if (character.userNo !== userNo)
-        return res.status(401).json({ message: "계정 주인이 아닙니다." });
-
       const deleteCharacter = await prisma.characters.delete({
-        where: { characterNo: +characterNo },
+        where: { characterNo: character.characterNo },
       });
 
       return res.status(200).json({ data: { deleteCharacter } });
     } catch (err) {
-      res.status(500).json({ errorMessage: "서버오류" });
+      next(err);
     }
   }
 );
@@ -87,10 +74,7 @@ router.get(
       const character = await prisma.characters.findFirst({
         where: { characterNo: +characterNo },
       });
-      if (!character)
-        return res
-          .status(404)
-          .json({ message: "조회하려는 계정이 없습니다. " });
+      if (!character) throw new CustomErr("조회하려는 계정이 없습니다. ", 404);
 
       const returnData = {
         characterName: character.characterName,
@@ -103,7 +87,7 @@ router.get(
         data: returnData,
       });
     } catch (err) {
-      res.status(500).json({ errorMessage: "서버오류" });
+      next(err);
     }
   }
 );

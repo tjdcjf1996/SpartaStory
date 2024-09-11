@@ -1,6 +1,7 @@
 import { prisma } from "../utils/prisma/index.js";
+import CustomErr from "../utils/CustomErr.js";
 
-export default async function (req, res, next) {
+export default async function (req, _, next) {
   try {
     const {
       user: { userNo },
@@ -11,18 +12,12 @@ export default async function (req, res, next) {
       where: { characterNo: +characterNo },
     });
     if (!character)
-      return res
-        .status(404)
-        .json({ errorMessage: "캐릭터가 정보가 존재하지 않습니다." });
-
+      throw new CustomErr("캐릭터가 정보가 존재하지 않습니다.", 404);
     if (character.userNo !== userNo)
-      return res
-        .status(401)
-        .json({ errorMessage: "캐릭터 접근 권한이 없습니다." });
-
+      throw new CustomErr("캐릭터 접근 권한이 없습니다.", 401);
     req.character = character;
     next();
-  } catch (error) {
-    return res.status(500).json({ message: "인증 간 서버 오류" });
+  } catch (err) {
+    next(err);
   }
 }
