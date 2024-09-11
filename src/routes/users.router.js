@@ -7,62 +7,74 @@ import { SECRET_CODE } from "../config.js";
 const router = express.Router();
 
 router.post("/sign-up", async (req, res, next) => {
-  const { userId, userPw, confirmPw, userName } = req.body;
-
+  const {
+    body: { userId, userPw, confirmPw, userName },
+  } = req;
   const validUserId = /^[a-z0-9]+$/;
 
-  const isUser = await prisma.users.findFirst({
-    where: { userId },
-  });
-  if (isUser)
-    return res.status(409).json({
-      errorMessage: "이미 존재하는 아이디 입니다.",
-    });
-  if (!validUserId.test(userId))
-    return res.status(400).json({
-      errorMessage: "아이디는 소문자 + 숫자 형식만 가능합니다.",
-    });
-  if (userPw.length < 6)
-    return res.status(400).json({
-      errorMessage: "비밀번호는 최소 6자리 이상만 가능합니다.",
-    });
-  if (userPw !== confirmPw)
-    return res.status(401).json({
-      errorMessage: "비밀번호와 확인이 일치하지 않습니다.",
+  try {
+    const isUser = await prisma.users.findFirst({
+      where: { userId },
     });
 
-  const hashedPw = await bcrypt.hash(userPw, 10);
-  const user = await prisma.users.create({
-    data: { userId, userPw: hashedPw, userName },
-  });
+    if (isUser)
+      return res.status(409).json({
+        errorMessage: "이미 존재하는 아이디 입니다.",
+      });
+    if (!validUserId.test(userId))
+      return res.status(400).json({
+        errorMessage: "아이디는 소문자 + 숫자 형식만 가능합니다.",
+      });
+    if (userPw.length < 6)
+      return res.status(400).json({
+        errorMessage: "비밀번호는 최소 6자리 이상만 가능합니다.",
+      });
+    if (userPw !== confirmPw)
+      return res.status(401).json({
+        errorMessage: "비밀번호와 확인이 일치하지 않습니다.",
+      });
 
-  return res.status(201).json({
-    data: {
-      userNo: user.userNo,
-      userId: user.userId,
-      userName: user.userName,
-    },
-  });
+    const hashedPw = await bcrypt.hash(userPw, 10);
+    const user = await prisma.users.create({
+      data: { userId, userPw: hashedPw, userName },
+    });
+
+    return res.status(201).json({
+      data: {
+        userNo: user.userNo,
+        userId: user.userId,
+        userName: user.userName,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ errorMessage: "서버 오류" });
+  }
 });
 
 router.post("/sign-in", async (req, res, next) => {
-  const { userId, userPw } = req.body;
-  const isUser = await prisma.users.findFirst({
-    where: { userId },
-  });
-  if (!isUser)
-    return res.status(400).json({
-      errorMessage: "없는 아이디 입니다.",
+  const {
+    body: { userId, userPw },
+  } = req;
+  try {
+    const isUser = await prisma.users.findFirst({
+      where: { userId },
     });
-  if (!(await bcrypt.compare(userPw, isUser.userPw)))
-    return res.status(401).json({
-      errorMessage: "틀린 비밀번호 입니다.",
-    });
-  const token = jwt.sign({ userId: userId }, SECRET_CODE);
-  res.setHeader("Authorization", `Bearer ${token}`);
-  return res
-    .status(200)
-    .json({ message: "로그인 성공, 헤더에 토큰값이 반환되었습니다." });
+    if (!isUser)
+      return res.status(400).json({
+        errorMessage: "없는 아이디 입니다.",
+      });
+    if (!(await bcrypt.compare(userPw, isUser.userPw)))
+      return res.status(401).json({
+        errorMessage: "틀린 비밀번호 입니다.",
+      });
+    const token = jwt.sign({ userId: userId }, SECRET_CODE);
+    res.setHeader("Authorization", `Bearer ${token}`);
+    return res
+      .status(200)
+      .json({ message: "로그인 성공, 헤더에 토큰값이 반환되었습니다." });
+  } catch (err) {
+    res.status(500).json({ errorMessage: "서버 오류" });
+  }
 });
 
 export default router;

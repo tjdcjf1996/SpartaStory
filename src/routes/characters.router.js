@@ -7,36 +7,35 @@ const router = express.Router();
 // 캐릭터 추가
 
 router.post("/character", authMiddleware, async (req, res, next) => {
-  const { characterName } = req.body;
-  const { userNo } = req.user;
-  console.log(userNo);
-  const isCharacter = await prisma.characters.findFirst({
-    where: { characterName },
-  });
-  if (isCharacter)
-    return res.status(409).json({ message: "이미 있는 캐릭터명입니다. " });
+  const {
+    body: { characterName },
+    user: { userNo },
+  } = req;
 
-  const character = await prisma.characters.create({
-    data: {
-      characterName,
-      userNo,
-      inventory: {
-        create: {
-          items: JSON.stringify({}),
-        },
-      },
-      equip: {
-        create: {
-          items: JSON.stringify({}),
-        },
-      },
-    },
-  });
+  try {
+    const isCharacter = await prisma.characters.findFirst({
+      where: { characterName },
+    });
+    if (isCharacter)
+      return res.status(409).json({ message: "이미 있는 캐릭터명입니다. " });
 
-  const characterNo = character.characterNo;
-  return res.status(201).json({
-    data: { characterNo },
-  });
+    const character = await prisma.characters.create({
+      data: {
+        characterName,
+        userNo,
+        inventory: {
+          create: { items: JSON.stringify({}) },
+        },
+        equip: { create: { items: JSON.stringify({}) } },
+      },
+    });
+
+    return res.status(201).json({
+      data: { characterNo: character.characterNo },
+    });
+  } catch (err) {
+    res.status(500).json({ errorMessage: "서버오류" });
+  }
 });
 
 // 캐릭터 삭제
@@ -45,22 +44,31 @@ router.delete(
   "/character/delete/:characterNo",
   authMiddleware,
   async (req, res, next) => {
-    const { characterNo } = req.params;
-    const { userNo } = req.user;
-    const character = await prisma.characters.findFirst({
-      where: { characterNo: +characterNo },
-    });
-    if (!character)
-      return res.status(404).json({ message: "삭제하려는 계정이 없습니다. " });
+    const {
+      params: { characterNo },
+      user: { userNo },
+    } = req;
 
-    if (character.userNo !== userNo)
-      return res.status(401).json({ message: "계정 주인이 아닙니다." });
+    try {
+      const character = await prisma.characters.findFirst({
+        where: { characterNo: +characterNo },
+      });
+      if (!character)
+        return res
+          .status(404)
+          .json({ message: "삭제하려는 계정이 없습니다. " });
 
-    const deleteCharacter = await prisma.characters.delete({
-      where: { characterNo: +characterNo },
-    });
+      if (character.userNo !== userNo)
+        return res.status(401).json({ message: "계정 주인이 아닙니다." });
 
-    return res.status(200).json({ data: { deleteCharacter } });
+      const deleteCharacter = await prisma.characters.delete({
+        where: { characterNo: +characterNo },
+      });
+
+      return res.status(200).json({ data: { deleteCharacter } });
+    } catch (err) {
+      res.status(500).json({ errorMessage: "서버오류" });
+    }
   }
 );
 
@@ -70,31 +78,32 @@ router.get(
   "/character/info/:characterNo",
   authMiddleware,
   async (req, res, next) => {
-    const { characterNo } = req.params;
-    const { userNo } = req.user;
-    const character = await prisma.characters.findFirst({
-      where: { characterNo: +characterNo },
-    });
-    if (!character)
-      return res.status(404).json({ message: "조회하려는 계정이 없습니다. " });
+    const {
+      params: { characterNo },
+      user: { userNo },
+    } = req;
 
-    if (character.userNo === userNo) {
-      return res.status(200).json({
-        data: {
-          characterName: character.characterName,
-          money: character.money,
-          health: character.health,
-          power: character.power,
-        },
+    try {
+      const character = await prisma.characters.findFirst({
+        where: { characterNo: +characterNo },
       });
-    } else {
+      if (!character)
+        return res
+          .status(404)
+          .json({ message: "조회하려는 계정이 없습니다. " });
+
+      const returnData = {
+        characterName: character.characterName,
+        health: character.health,
+        power: character.power,
+      };
+      if (character.userNo === userNo) returnData.money = character.money;
+
       return res.status(200).json({
-        data: {
-          characterName: character.characterName,
-          health: character.health,
-          power: character.power,
-        },
+        data: returnData,
       });
+    } catch (err) {
+      res.status(500).json({ errorMessage: "서버오류" });
     }
   }
 );

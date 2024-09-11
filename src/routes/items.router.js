@@ -7,67 +7,84 @@ const router = express.Router();
 
 router.post("/item", async (req, res, next) => {
   const { itemNo, itemName, itemStat, itemPrice } = req.body;
-  const isItem = await prisma.items.findFirst({
-    where: { itemNo },
-  });
-  if (isItem)
-    return res.status(409).json({ message: "이미 있는 아이템 넘버입니다." });
+  try {
+    const isItem = await prisma.items.findFirst({
+      where: { itemNo },
+    });
+    if (isItem)
+      return res.status(409).json({ message: "이미 있는 아이템 넘버입니다." });
 
-  const item = await prisma.items.create({
-    data: {
-      itemNo,
-      itemName,
-      itemPrice,
-      itemStat,
-    },
-  });
+    const item = await prisma.items.create({
+      data: {
+        itemNo,
+        itemName,
+        itemPrice,
+        itemStat,
+      },
+    });
 
-  return res.status(201).json({ data: item });
+    return res.status(201).json({ data: item });
+  } catch (err) {
+    res.status(500).json({ errorMessage: "서버 오류" });
+  }
 });
 
 // item 수정
 
 router.patch("/updateItem/:itemNo", async (req, res, next) => {
-  const { itemNo } = req.params;
-  const { itemName, itemStat } = req.body;
+  const {
+    params: { itemNo },
+    body: { itemName, itemStat },
+  } = req;
 
-  const Item = await prisma.items.findFirst({
-    where: { itemNo: +itemNo },
-  });
+  try {
+    const Item = await prisma.items.findFirst({
+      where: { itemNo: +itemNo },
+    });
 
-  if (!Item) return res.status(404).json({ message: "없는 아이템입니다." });
+    if (!Item) return res.status(404).json({ message: "없는 아이템입니다." });
 
-  const updateItem = await prisma.items.update({
-    where: { itemNo: +itemNo },
-    data: {
-      itemName,
-      itemStat,
-    },
-  });
+    const updateItem = await prisma.items.update({
+      where: { itemNo: +itemNo },
+      data: {
+        itemName,
+        itemStat,
+      },
+    });
 
-  return res.status(200).json({ data: updateItem });
+    return res.status(200).json({ data: updateItem });
+  } catch (err) {
+    res.status(500).json({ errorMessage: "서버 오류" });
+  }
 });
 
 // item 목록 조회
 router.get("/item", async (req, res, next) => {
   const items = await prisma.items.findMany();
-  if (!items)
-    return res.status(404).json({ message: "등록된 아이템이 없습니다." });
-
-  return res.status(200).json({ data: items });
+  try {
+    if (!items)
+      return res.status(404).json({ message: "등록된 아이템이 없습니다." });
+    return res.status(200).json({ data: items });
+  } catch (err) {
+    res.status(500).json({ errorMessage: "서버 오류" });
+  }
 });
 
 // item 목록 상세조회
 
 router.get("/item/:itemNo", async (req, res, next) => {
   const { itemNo } = req.params;
-  const items = await prisma.items.findFirst({
-    where: { itemNo: +itemNo },
-  });
-  if (!items)
-    return res.status(404).json({ message: "등록된 아이템이 없습니다." });
+  try {
+    const items = await prisma.items.findFirst({
+      where: { itemNo: +itemNo },
+    });
+    if (!items)
+      return res.status(404).json({ message: "등록된 아이템이 없습니다." });
 
-  return res.status(200).json({ data: items });
+    return res.status(200).json({ data: items });
+  } catch (err) {
+    res.status(500).json({ errorMessage: "서버 오류" });
+  }
 });
 
 export default router;
