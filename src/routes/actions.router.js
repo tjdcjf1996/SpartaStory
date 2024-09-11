@@ -1,23 +1,25 @@
 import express from "express";
 import { prisma } from "../utils/prisma/index.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
+import isCharacterMiddleware from "../middlewares/isCharacter.middleware.js";
 
 const router = express.Router();
 
 router.get(
   "/inventory/:characterNo",
   authMiddleware,
+  isCharacterMiddleware,
   async (req, res, next) => {
     const {
       params: { characterNo },
       user: { userNo },
+      character,
     } = req;
 
     try {
-      const [inventory, character] = await Promise.all([
-        prisma.inventories.findFirst({ where: { inventoryNo: +characterNo } }),
-        prisma.characters.findFirst({ where: { characterNo: +characterNo } }),
-      ]);
+      const inventory = prisma.inventories.findFirst({
+        where: { inventoryNo: +characterNo },
+      });
       if (!inventory || !character)
         return res
           .status(404)
@@ -61,29 +63,20 @@ router.get("/equip/:characterNo", async (req, res, next) => {
 router.post(
   "/equipItem/:characterNo",
   authMiddleware,
+  isCharacterMiddleware,
   async (req, res, next) => {
     const {
       params: { characterNo },
       body: { doEquipItem },
-      user: { userNo },
+      character,
     } = req;
 
     try {
-      const [character, inventory, equip, item] = await Promise.all([
-        prisma.characters.findFirst({ where: { characterNo: +characterNo } }),
+      const [inventory, equip, item] = await Promise.all([
         prisma.inventories.findFirst({ where: { inventoryNo: +characterNo } }),
         prisma.equips.findFirst({ where: { equipNo: +characterNo } }),
         prisma.items.findFirst({ where: { itemNo: +doEquipItem } }),
       ]);
-
-      if (!character)
-        return res.status(404).json({
-          errorMessage: " 장비를 착용할 캐릭터가 존재하지 않습니다. ",
-        });
-      if (character.userNo !== userNo)
-        return res
-          .status(401)
-          .json({ errorMessage: " 장비 착용 권한이 없습니다. " });
 
       const inventoryItems = JSON.parse(inventory.items);
       const equipItems = JSON.parse(equip.items);
@@ -144,29 +137,20 @@ router.post(
 router.post(
   "/unEquipItem/:characterNo",
   authMiddleware,
+  isCharacterMiddleware,
   async (req, res, next) => {
     const {
       params: { characterNo },
       body: { unEquipItem },
-      user: { userNo },
+      character,
     } = req;
 
     try {
-      const [character, inventory, equip, item] = await Promise.all([
-        prisma.characters.findFirst({ where: { characterNo: +characterNo } }),
+      const [inventory, equip, item] = await Promise.all([
         prisma.inventories.findFirst({ where: { inventoryNo: +characterNo } }),
         prisma.equips.findFirst({ where: { equipNo: +characterNo } }),
         prisma.items.findFirst({ where: { itemNo: +unEquipItem } }),
       ]);
-
-      if (!character)
-        return res.status(404).json({
-          errorMessage: " 장비를 착용할 캐릭터가 존재하지 않습니다. ",
-        });
-      if (character.userNo !== userNo)
-        return res
-          .status(401)
-          .json({ errorMessage: " 장비 탈착 권한이 없습니다. " });
 
       const inventoryItems = JSON.parse(inventory.items);
       const equipItems = JSON.parse(equip.items);
@@ -222,26 +206,14 @@ router.post(
 router.get(
   "/showMeTheMoney/:characterNo",
   authMiddleware,
+  isCharacterMiddleware,
   async (req, res, next) => {
     const {
       params: { characterNo },
-      user: { userNo },
+      character,
     } = req;
 
     try {
-      const character = await prisma.characters.findFirst({
-        where: { characterNo: +characterNo },
-      });
-      if (!character)
-        return res
-          .status(404)
-          .json({ errorMessage: "캐릭터가 존재하지 않습니다." });
-
-      if (character.userNo !== userNo)
-        return res
-          .status(401)
-          .json({ errorMessage: "남 캐릭터 돈벌어줘서 뭐합니까" });
-
       character.money += 100;
       const changedCharacter = await prisma.characters.update({
         where: { characterNo: +characterNo },
