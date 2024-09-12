@@ -15,7 +15,9 @@ export default function (req, res, next) {
   const start = new Date().getTime();
 
   res.on("finish", () => {
+    // 응답속도 계산
     const duration = new Date().getTime() - start;
+
     if (res.statusCode >= 400) {
       // 오류 상태 코드일 경우 error 레벨로 로그
       logger.error(
