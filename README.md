@@ -2,6 +2,38 @@
 
 스파르타코딩클럽 CH3 개인과제
 
+## 폴더 구조
+
+├─prisma
+│  ├─migrations
+│  │  ├─20240910082845_inven_equip
+│  │  │  └─migration.sql
+│  │  └─migration_lock.toml
+│  └─schema.prisma
+│
+└─src
+    ├─middlewares
+    │  ├─auth.middleware.js
+    │  ├─error-handling.middleware.js
+    │  ├─isCharacter.middleware.js
+    │  └─log.middleware.js
+    │
+    ├─routes
+    │  ├─actions.router.js
+    │  ├─characters.router.js
+    │  ├─items.router.js
+    │  ├─shop.router.js
+    │  └─users.router.js
+    │
+    ├─utils
+    │  ├─CustomErr.js
+    │  └─prisma
+    │      └─index.js
+    │
+    ├─app.js
+    └─config.js
+
+
 ## 미들웨어 구현 리스트
 
 - 토큰 인증 미들웨어
