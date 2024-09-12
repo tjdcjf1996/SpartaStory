@@ -19,6 +19,6 @@ export default async function (req, _, next) {
     req.character = character; // request에 캐릭터 객체 설정
     next();
   } catch (err) {
-    next(err); // 에러 발생 시 다음 미들웨어로 전달
+    return res.status(400).json({ message: err.message });
   }
 }

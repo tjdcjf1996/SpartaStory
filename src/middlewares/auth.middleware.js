@@ -28,6 +28,6 @@ export default async function (req, res, next) {
     req.user = user; // request에 user 객체 설정
     next(); // 다음 미들웨어로 전달
   } catch (err) {
-    next(); // 에러 발생 시 다음 미들웨어로 전달
+    return res.status(400).json({ message: err.message });
   }
 }
