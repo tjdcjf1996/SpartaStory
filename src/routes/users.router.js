@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { SECRET_CODE } from "../config.js";
 import CustomErr from "../utils/CustomErr.js";
+import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
@@ -29,9 +30,19 @@ router.post("/sign-up", async (req, res, next) => {
       throw new CustomErr("비밀번호와 확인이 일치하지 않습니다.", 401); // 비밀번호 불일치 에러
 
     const hashedPw = await bcrypt.hash(userPw, 10); // 비밀번호 해시화
-    const user = await prisma.users.create({
-      data: { userId, userPw: hashedPw, userName }, // 새로운 사용자 생성
-    });
+
+    // Database 변경 부분 트랜잭션
+    const user = await prisma.$transaction(
+      async (tx) => {
+        const user = await tx.users.create({
+          data: { userId, userPw: hashedPw, userName }, // 새로운 사용자 생성
+        });
+        return user;
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      }
+    );
 
     return res.status(201).json({
       data: {

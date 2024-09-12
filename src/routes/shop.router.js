@@ -3,6 +3,7 @@ import { prisma } from "../utils/prisma/index.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import isCharacterMiddleware from "../middlewares/isCharacter.middleware.js";
 import CustomErr from "../utils/CustomErr.js";
+import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
@@ -43,16 +44,25 @@ router.post(
         inventoryItems[itemNo] = (inventoryItems[itemNo] || 0) + count; // 인벤토리 아이템 수량 업데이트
       }
 
-      const [updatedCharacter, updatedInventory] = await Promise.all([
-        prisma.characters.update({
-          where: { characterNo: +characterNo },
-          data: { money: character.money - price }, // 캐릭터 돈 업데이트
-        }),
-        prisma.inventories.update({
-          where: { inventoryNo: +characterNo },
-          data: { items: JSON.stringify(inventoryItems) }, // 인벤토리 아이템 업데이트
-        }),
-      ]);
+      // 데이터베이스 변경 부분 트랜잭션화
+      const [updatedCharacter, updatedInventory] = await prisma.$transaction(
+        async (tx) => {
+          const updatedCharacter = await tx.characters.update({
+            where: { characterNo: +characterNo },
+            data: { money: character.money - price }, // 캐릭터 돈 업데이트
+          });
+
+          const updatedInventory = await tx.inventories.update({
+            where: { inventoryNo: +characterNo },
+            data: { items: JSON.stringify(inventoryItems) }, // 인벤토리 아이템 업데이트
+          });
+
+          return [updatedCharacter, updatedInventory];
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        }
+      );
 
       res.status(200).json({
         data: {
@@ -108,16 +118,25 @@ router.post(
         }
       }
 
-      const [updatedCharacter, updatedInventory] = await Promise.all([
-        prisma.characters.update({
-          where: { characterNo: +characterNo },
-          data: { money: character.money + price }, // 캐릭터 돈 업데이트
-        }),
-        prisma.inventories.update({
-          where: { inventoryNo: +characterNo },
-          data: { items: JSON.stringify(inventoryItems) }, // 인벤토리 아이템 업데이트
-        }),
-      ]);
+      // 데이터베이스 변경 트랜잭션화
+      const [updatedCharacter, updatedInventory] = await prisma.$transaction(
+        async (tx) => {
+          const updatedCharacter = await tx.characters.update({
+            where: { characterNo: +characterNo },
+            data: { money: character.money + price }, // 캐릭터 돈 업데이트
+          });
+
+          const updatedInventory = await tx.inventories.update({
+            where: { inventoryNo: +characterNo },
+            data: { items: JSON.stringify(inventoryItems) }, // 인벤토리 아이템 업데이트
+          });
+
+          return [updatedCharacter, updatedInventory];
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        }
+      );
 
       res.status(200).json({
         data: {

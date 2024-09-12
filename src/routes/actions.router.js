@@ -3,6 +3,7 @@ import { prisma } from "../utils/prisma/index.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import isCharacterMiddleware from "../middlewares/isCharacter.middleware.js";
 import CustomErr from "../utils/CustomErr.js";
+import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
@@ -101,22 +102,29 @@ router.post(
         character[key] += value;
       }
 
-      // 데이터베이스 업데이트
+      // 데이터베이스 업데이트 (트랜잭션)
       const [updatedCharacter, updatedInventory, updatedEquip] =
-        await Promise.all([
-          prisma.characters.update({
-            where: { characterNo: +characterNo },
-            data: { health: character.health, power: character.power },
-          }),
-          prisma.inventories.update({
-            where: { inventoryNo: +characterNo },
-            data: { items: JSON.stringify(inventoryItems) },
-          }),
-          prisma.equips.update({
-            where: { equipNo: +characterNo },
-            data: { items: JSON.stringify(equipItems) },
-          }),
-        ]);
+        await prisma.$transaction(
+          async (tx) => {
+            const updatedCharacter = await tx.characters.update({
+              where: { characterNo: +characterNo },
+              data: { health: character.health, power: character.power },
+            });
+            const updatedInventory = await tx.inventories.update({
+              where: { inventoryNo: +characterNo },
+              data: { items: JSON.stringify(inventoryItems) },
+            });
+            const updatedEquip = await tx.equips.update({
+              where: { equipNo: +characterNo },
+              data: { items: JSON.stringify(equipItems) },
+            });
+
+            return [updatedCharacter, updatedInventory, updatedEquip];
+          },
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+          }
+        );
 
       return res.status(200).json({
         data: {
@@ -172,22 +180,29 @@ router.post(
         character[key] -= value;
       }
 
-      // 데이터베이스 업데이트
+      // 데이터베이스 업데이트 (트랜잭션)
       const [updatedCharacter, updatedInventory, updatedEquip] =
-        await Promise.all([
-          prisma.characters.update({
-            where: { characterNo: +characterNo },
-            data: { health: character.health, power: character.power },
-          }),
-          prisma.inventories.update({
-            where: { inventoryNo: +characterNo },
-            data: { items: JSON.stringify(inventoryItems) },
-          }),
-          prisma.equips.update({
-            where: { equipNo: +characterNo },
-            data: { items: JSON.stringify(equipItems) },
-          }),
-        ]);
+        await prisma.$transaction(
+          async (tx) => {
+            const updatedCharacter = await tx.characters.update({
+              where: { characterNo: +characterNo },
+              data: { health: character.health, power: character.power },
+            });
+            const updatedInventory = await tx.inventories.update({
+              where: { inventoryNo: +characterNo },
+              data: { items: JSON.stringify(inventoryItems) },
+            });
+            const updatedEquip = await tx.equips.update({
+              where: { equipNo: +characterNo },
+              data: { items: JSON.stringify(equipItems) },
+            });
+
+            return [updatedCharacter, updatedInventory, updatedEquip];
+          },
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+          }
+        );
 
       return res.status(200).json({
         data: {
@@ -219,11 +234,20 @@ router.get(
     try {
       // 캐릭터의 돈을 100원 증가
       character.money += 100;
-      // 데이터베이스에서 캐릭터의 돈 업데이트
-      const changedCharacter = await prisma.characters.update({
-        where: { characterNo: +characterNo },
-        data: { money: character.money },
-      });
+
+      // 데이터베이스에서 캐릭터의 돈 업데이트 (트랜잭션)
+      const changedCharacter = await prisma.$transaction(
+        async (tx) => {
+          const changedCharacter = await tx.characters.update({
+            where: { characterNo: +characterNo },
+            data: { money: character.money },
+          });
+          return changedCharacter;
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        }
+      );
 
       return res.status(200).json({
         message: `100원이 추가되어 잔액이 ${changedCharacter.money} 원이 되었습니다.`,

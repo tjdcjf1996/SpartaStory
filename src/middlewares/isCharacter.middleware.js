@@ -1,7 +1,7 @@
 import { prisma } from "../utils/prisma/index.js";
 import CustomErr from "../utils/CustomErr.js";
 
-export default async function (req, _, next) {
+export default async function (req, res, next) {
   try {
     // 인증 미들웨어에서 생성한 user와 URL 매개변수에서 추출
     const {

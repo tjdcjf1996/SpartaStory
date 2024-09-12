@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../utils/prisma/index.js";
 import CustomErr from "../utils/CustomErr.js";
+import { Prisma } from "@prisma/client";
 
 const router = express.Router();
 
@@ -16,15 +17,25 @@ router.post("/item", async (req, res, next) => {
     });
     if (isItem) throw new CustomErr("이미 있는 아이템 넘버입니다.", 409); // 이미 존재하는 아이템 번호일 경우 에러를 발생시킵니다.
 
-    // 새로운 아이템을 데이터베이스에 생성합니다.
-    const item = await prisma.items.create({
-      data: {
-        itemNo,
-        itemName,
-        itemPrice,
-        itemStat,
+    // 새로운 아이템을 데이터베이스에 생성합니다. (트랜잭션)
+
+    const item = await prisma.$transaction(
+      async (tx) => {
+        const item = await tx.items.create({
+          data: {
+            itemNo,
+            itemName,
+            itemPrice,
+            itemStat,
+          },
+        });
+
+        return item;
       },
-    });
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      }
+    );
 
     // 생성된 아이템 정보를 반환합니다.
     return res.status(201).json({ data: item });
@@ -50,14 +61,23 @@ router.patch("/updateItem/:itemNo", async (req, res, next) => {
 
     if (!Item) throw new CustomErr("없는 아이템입니다.", 404); // 아이템이 없을 경우 에러를 발생시킵니다.
 
-    // 아이템 정보를 업데이트합니다.
-    const updateItem = await prisma.items.update({
-      where: { itemNo: +itemNo },
-      data: {
-        itemName,
-        itemStat,
+    // 아이템 정보를 업데이트합니다.(트랜잭션)
+    const updateItem = await prisma.$transaction(
+      async (tx) => {
+        const updateItem = await tx.items.update({
+          where: { itemNo: +itemNo },
+          data: {
+            itemName,
+            itemStat,
+          },
+        });
+
+        return updateItem;
       },
-    });
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      }
+    );
 
     // 업데이트된 아이템 정보를 반환합니다.
     return res.status(200).json({ data: updateItem });
