@@ -6,9 +6,11 @@ import shopRouter from "./routes/shop.router.js";
 import actionRouter from "./routes/actions.router.js";
 import { PORT } from "./config.js";
 import errorHandlingMiddleware from "./middlewares/error-handling.middleware.js";
+import LogMiddleware from "./middlewares/log.middleware.js";
 
 const app = express();
 
+app.use(LogMiddleware);
 app.use(express.json());
 app.use("/api", [
   userRouter,
