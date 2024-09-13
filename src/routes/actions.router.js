@@ -220,7 +220,7 @@ router.post(
 );
 
 // 머니 증가 라우트
-router.get(
+router.patch(
   "/showMeTheMoney/:characterNo", // URL 경로에 characterNo 파라미터 포함
   authMiddleware, // 인증 미들웨어
   isCharacterMiddleware, // 캐릭터 확인 미들웨어
